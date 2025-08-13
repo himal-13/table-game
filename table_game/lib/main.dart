@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'package:table_game/pages/play_menu.dart';
+import 'package:table_game/home_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,7 +27,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: darkPurple,
       ),
       // The app now starts with the MenuPage
-      home: const PlayMenu(),
+      home: const HomePage(),
     );
   }
 }

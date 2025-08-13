@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_game/main.dart';
+
 
 class GamePage extends StatefulWidget {
   final List<int> selectedNumbers;
@@ -31,6 +33,7 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
   int _correctAnswers = 0;
   DateTime? _questionStartTime;
   final List<int> _responseTimes = [];
+  int _totalResponseTime = 0;
 
   // Animation controllers
   late AnimationController _dialogController;
@@ -54,8 +57,33 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     );
   }
 
-  void _loadHighScore() {
-    _highScore = 0;
+  // Load high score from local storage
+  void _loadHighScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _highScore = prefs.getInt('highScore') ?? 0;
+    });
+  }
+
+  // Save the new high score to local storage
+  void _saveHighScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('highScore', _highScore);
+  }
+
+  // Save all game stats to local storage
+  void _saveGameStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Add current game stats to existing stats
+    int totalQuestions = prefs.getInt('totalQuestions') ?? 0;
+    int correctAnswers = prefs.getInt('correctAnswers') ?? 0;
+    int totalResponseTime = prefs.getInt('totalResponseTime') ?? 0;
+    int totalScore = prefs.getInt('totalScore') ?? 0;
+
+    await prefs.setInt('totalQuestions', totalQuestions + _totalQuestions);
+    await prefs.setInt('correctAnswers', correctAnswers + _correctAnswers);
+    await prefs.setInt('totalResponseTime', totalResponseTime + _totalResponseTime);
+    await prefs.setInt('totalScore', totalScore + _score);
   }
 
   void _startTimer() {
@@ -106,16 +134,20 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
         _health--;
       } else if (int.tryParse(selectedAnswer) == _correctAnswer) {
         // Calculate and save response time
-        _responseTimes.add(DateTime.now().difference(_questionStartTime!).inMilliseconds);
+        int responseTime = DateTime.now().difference(_questionStartTime!).inMilliseconds;
+        _responseTimes.add(responseTime);
+        _totalResponseTime += responseTime;
         _correctAnswers++;
         _score++;
         if (_score > _highScore) {
           _highScore = _score;
+          _saveHighScore(); // Save new high score immediately
         }
       }
     });
 
     if (_health <= 0) {
+      _saveGameStats();
       _showGameOverDialog();
     } else {
       setState(() {
@@ -155,13 +187,6 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Container(
             padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: const BoxDecoration(
-              color: lightPurple,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
             child: const Text(
               "Game Over!",
               textAlign: TextAlign.center,
@@ -179,7 +204,7 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
                   return _buildDialogItem(
                     "Final Score:",
                     _scoreAnimation.value.round().toString(),
-                    darkPurple,
+                    beige,
                   );
                 },
               ),
@@ -190,7 +215,7 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
                   return _buildDialogItem(
                     "Accuracy:",
                     "${_accuracyAnimation.value.toStringAsFixed(1)}%",
-                    darkPurple,
+                    beige,
                   );
                 },
               ),
@@ -201,27 +226,30 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
                   return _buildDialogItem(
                     "Avg. Time:",
                     "${_timeAnimation.value.toStringAsFixed(2)}s",
-                    darkPurple,
+                    beige,
                   );
                 },
               ),
             ],
           ),
           actions: [
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: beige,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.popUntil(context, (route) => route.isFirst);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: beige,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  child: const Text(
+                    "Play Again",
+                    style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                child: const Text(
-                  "Play Again",
-                  style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ],
             ),
           ],
         );
