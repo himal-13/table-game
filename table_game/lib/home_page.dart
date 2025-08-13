@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_game/pages/play_menu.dart';
+import 'package:table_game/pages/stats_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -56,7 +57,12 @@ class HomePage extends StatelessWidget {
 
             // Stats Button
             CustomElevatedButton(
-              onPressed: (){},
+              onPressed: (){
+               Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => StatsPage()),
+                );
+              },
               icon: Icons.bar_chart,
               text: 'STATS',
               buttonColor: buttonColor,

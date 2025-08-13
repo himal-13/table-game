@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_game/main.dart';
-
+import 'package:table_game/pages/play_menu.dart';
 
 class GamePage extends StatefulWidget {
   final List<int> selectedNumbers;
@@ -20,22 +20,26 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
   int _score = 0;
   int _highScore = 0;
   int _timeRemaining = 15;
-  int _health = 5; // Initial health
+  int _health = 5;
   Timer? _timer;
 
-  // Question and options state variables
+  // Question and options
   String _question = "";
   int _correctAnswer = 0;
   List<String> _options = [];
+  
+  // Answer feedback
+  String _selectedAnswer = "";
+  bool _showAnswer = false;
 
-  // For tracking game statistics
+  // Statistics
   int _totalQuestions = 0;
   int _correctAnswers = 0;
   DateTime? _questionStartTime;
   final List<int> _responseTimes = [];
   int _totalResponseTime = 0;
 
-  // Animation controllers
+  // Animation
   late AnimationController _dialogController;
   late Animation<double> _scoreAnimation;
   late Animation<double> _accuracyAnimation;
@@ -50,14 +54,12 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     _generateQuestion();
     _startTimer();
 
-    // Initialize animation controller
     _dialogController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
     );
   }
 
-  // Load high score from local storage
   void _loadHighScore() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -65,42 +67,28 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     });
   }
 
-  // Save the new high score to local storage
   void _saveHighScore() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('highScore', _highScore);
   }
 
-  // Save all game stats to local storage
   void _saveGameStats() async {
     final prefs = await SharedPreferences.getInstance();
-    // Add current game stats to existing stats
-    int totalQuestions = prefs.getInt('totalQuestions') ?? 0;
-    int correctAnswers = prefs.getInt('correctAnswers') ?? 0;
-    int totalResponseTime = prefs.getInt('totalResponseTime') ?? 0;
-    int totalScore = prefs.getInt('totalScore') ?? 0;
-
-    await prefs.setInt('totalQuestions', totalQuestions + _totalQuestions);
-    await prefs.setInt('correctAnswers', correctAnswers + _correctAnswers);
-    await prefs.setInt('totalResponseTime', totalResponseTime + _totalResponseTime);
-    await prefs.setInt('totalScore', totalScore + _score);
+    await prefs.setInt('totalQuestions', (prefs.getInt('totalQuestions') ?? 0) + _totalQuestions);
+    await prefs.setInt('correctAnswers', (prefs.getInt('correctAnswers') ?? 0) + _correctAnswers);
+    await prefs.setInt('totalResponseTime', (prefs.getInt('totalResponseTime') ?? 0) + _totalResponseTime);
+    await prefs.setInt('totalScore', (prefs.getInt('totalScore') ?? 0) + _score);
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_timeRemaining > 0) {
-        setState(() {
-          _timeRemaining--;
-        });
+        setState(() => _timeRemaining--);
       } else {
         _timer?.cancel();
-        _handleTimeOut();
+        _checkAnswer("TimeOut");
       }
     });
-  }
-
-  void _handleTimeOut() {
-    _checkAnswer("TimeOut"); // Treat timeout as a wrong answer
   }
 
   void _generateQuestion() {
@@ -110,30 +98,29 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     _correctAnswer = num1 * num2;
     _question = "$num1 x $num2";
 
-    _options.clear();
-    Set<int> incorrectAnswers = {};
-    while (incorrectAnswers.length < 3) {
-      int randomOffset = _random.nextInt(10) - 5;
-      int incorrect = _correctAnswer + randomOffset;
-      if (incorrect != _correctAnswer && !incorrectAnswers.contains(incorrect) && incorrect > 0) {
-        incorrectAnswers.add(incorrect);
+    Set<int> options = {_correctAnswer};
+    while (options.length < 4) {
+      int offset = _random.nextInt(10) - 5;
+      int option = _correctAnswer + offset;
+      if (option > 0 && !options.contains(option)) {
+        options.add(option);
       }
     }
 
-    _options.add(_correctAnswer.toString());
-    _options.addAll(incorrectAnswers.map((e) => e.toString()));
+    _options = options.toList().map((e) => e.toString()).toList();
     _options.shuffle();
   }
 
   void _checkAnswer(String selectedAnswer) {
     _timer?.cancel();
     setState(() {
+      _selectedAnswer = selectedAnswer;
+      _showAnswer = true;
       _totalQuestions++;
-      // Check for timeout first, as it's a special case
-      if (selectedAnswer == "TimeOut" || int.tryParse(selectedAnswer) != _correctAnswer) {
-        _health--;
-      } else if (int.tryParse(selectedAnswer) == _correctAnswer) {
-        // Calculate and save response time
+
+      bool isCorrect = selectedAnswer != "TimeOut" && int.tryParse(selectedAnswer) == _correctAnswer;
+
+      if (isCorrect) {
         int responseTime = DateTime.now().difference(_questionStartTime!).inMilliseconds;
         _responseTimes.add(responseTime);
         _totalResponseTime += responseTime;
@@ -141,37 +128,40 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
         _score++;
         if (_score > _highScore) {
           _highScore = _score;
-          _saveHighScore(); // Save new high score immediately
+          _saveHighScore();
         }
+      } else {
+        _health--;
       }
     });
 
-    if (_health <= 0) {
-      _saveGameStats();
-      _showGameOverDialog();
-    } else {
-      setState(() {
-        _timeRemaining = 15;
-      });
-      _startTimer();
-      _generateQuestion();
-    }
+    Future.delayed(const Duration(seconds: 2), () {
+      if (_health <= 0) {
+        _saveGameStats();
+        _showGameOverDialog();
+      } else {
+        setState(() {
+          _selectedAnswer = "";
+          _showAnswer = false;
+          _timeRemaining = 15;
+        });
+        _startTimer();
+        _generateQuestion();
+      }
+    });
   }
 
   void _showGameOverDialog() {
-    double accuracy = _totalQuestions > 0 ? (_correctAnswers / _totalQuestions) * 100 : 0.0;
-    int averageTime = _responseTimes.isNotEmpty
-        ? (_responseTimes.reduce((a, b) => a + b) ~/ _responseTimes.length)
-        : 0;
-    double averageTimeInSeconds = averageTime / 1000.0;
+    double accuracy = _totalQuestions > 0 ? (_correctAnswers / _totalQuestions) * 100 : 0;
+    int avgTime = _responseTimes.isNotEmpty ? _responseTimes.reduce((a, b) => a + b) ~/ _responseTimes.length : 0;
 
-    _scoreAnimation = Tween<double>(begin: 0, end: _score.toDouble()).animate(
+    _scoreAnimation = Tween(begin: 0.0, end: _score.toDouble()).animate(
       CurvedAnimation(parent: _dialogController, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)),
     );
-    _accuracyAnimation = Tween<double>(begin: 0, end: accuracy).animate(
+    _accuracyAnimation = Tween(begin: 0.0, end: accuracy).animate(
       CurvedAnimation(parent: _dialogController, curve: const Interval(0.2, 0.7, curve: Curves.easeOut)),
     );
-    _timeAnimation = Tween<double>(begin: 0, end: averageTimeInSeconds).animate(
+    _timeAnimation = Tween(begin: 0.0, end: avgTime / 1000.0).animate(
       CurvedAnimation(parent: _dialogController, curve: const Interval(0.4, 0.9, curve: Curves.easeOut)),
     );
 
@@ -181,93 +171,50 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: darkPurple,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Container(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: const Text(
-              "Game Over!",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: beige, fontWeight: FontWeight.bold, fontSize: 32),
+      builder: (context) => AlertDialog(
+        backgroundColor: darkPurple,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Game Over!", style: TextStyle(color: beige, fontSize: 32, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _dialogController,
+              builder: (context, _) => _buildDialogItem("Score:", _scoreAnimation.value.round().toString()),
             ),
-          ),
-          contentPadding: EdgeInsets.zero,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 20),
-              AnimatedBuilder(
-                animation: _dialogController,
-                builder: (context, child) {
-                  return _buildDialogItem(
-                    "Final Score:",
-                    _scoreAnimation.value.round().toString(),
-                    beige,
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              AnimatedBuilder(
-                animation: _dialogController,
-                builder: (context, child) {
-                  return _buildDialogItem(
-                    "Accuracy:",
-                    "${_accuracyAnimation.value.toStringAsFixed(1)}%",
-                    beige,
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              AnimatedBuilder(
-                animation: _dialogController,
-                builder: (context, child) {
-                  return _buildDialogItem(
-                    "Avg. Time:",
-                    "${_timeAnimation.value.toStringAsFixed(2)}s",
-                    beige,
-                  );
-                },
-              ),
-            ],
-          ),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.popUntil(context, (route) => route.isFirst);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: beige,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
-                  child: const Text(
-                    "Play Again",
-                    style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+            AnimatedBuilder(
+              animation: _dialogController,
+              builder: (context, _) => _buildDialogItem("Accuracy:", "${_accuracyAnimation.value.toStringAsFixed(1)}%"),
+            ),
+            AnimatedBuilder(
+              animation: _dialogController,
+              builder: (context, _) => _buildDialogItem("Avg Time:", "${_timeAnimation.value.toStringAsFixed(2)}s"),
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const PlayMenu()),
+              (route) => false,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: beige,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            child: const Text("Play Again", style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildDialogItem(String label, String value, Color color) {
+  Widget _buildDialogItem(String label, String value) {
     return Column(
       children: [
-        Text(
-          label,
-          style: TextStyle(color: color, fontSize: 18),
-        ),
-        Text(
-          value,
-          style: TextStyle(color: beige, fontSize: 24, fontWeight: FontWeight.bold),
-        ),
+        Text(label, style: const TextStyle(color: beige, fontSize: 18)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -285,61 +232,40 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
       backgroundColor: darkPurple,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Header with Score, HighScore, Time and Health
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildHeaderItem("SCORE", _score.toString()),
                   _buildHeaderItem("HIGHSCORE", _highScore.toString()),
-                  _buildHeaderItem(
-                    "TIME",
-                    _timeRemaining >= 10 ? "0:$_timeRemaining" : "0:0$_timeRemaining",
-                  ),
+                  _buildHeaderItem("TIME", _timeRemaining.toString().padLeft(2, '0')),
                 ],
               ),
               const SizedBox(height: 20),
-              // Health bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < _health ? Icons.favorite : Icons.favorite_border,
-                    color: Colors.red,
-                    size: 30,
-                  );
-                }),
+                children: List.generate(5, (i) => Icon(
+                  i < _health ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.red,
+                  size: 30,
+                )),
               ),
               const SizedBox(height: 30),
-
-              // The multiplication question
-              Center(
-                child: Text(
-                  _question,
-                  style: const TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              Text(_question, style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 50),
-
-              // Answer buttons
               Expanded(
-                child: Center(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _options.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10.0),
-                        child: _buildAnswerButton(_options[index]),
-                      );
-                    },
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(10),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 2.5,
                   ),
+                  itemCount: _options.length,
+                  itemBuilder: (context, i) => _buildAnswerButton(_options[i]),
                 ),
               ),
             ],
@@ -349,53 +275,44 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // A helper widget to build the header items (Score, HighScore, Time)
   Widget _buildHeaderItem(String label, String value) {
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: beige,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(label, style: const TextStyle(color: beige, fontSize: 16)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  // A helper widget to build the answer buttons
   Widget _buildAnswerButton(String answer) {
-    return SizedBox(
-      width: double.infinity,
-      height: 70,
-      child: ElevatedButton(
-        onPressed: () => _checkAnswer(answer),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: beige,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
-        ),
-        child: Text(
-          answer,
-          style: const TextStyle(
-            color: darkPurple,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+    bool isCorrectAnswer = int.tryParse(answer) == _correctAnswer;
+    bool isSelectedAnswer = answer == _selectedAnswer;
+
+    Color backgroundColor = beige;
+    Color textColor = darkPurple;
+
+    if (_showAnswer) {
+      if (isCorrectAnswer) {
+        backgroundColor = Colors.green;
+        textColor = Colors.white;
+      } else if (isSelectedAnswer) {
+        backgroundColor = Colors.red;
+        textColor = Colors.white;
+      }
+    }
+
+    return ElevatedButton(
+      onPressed: _showAnswer ? null : () => _checkAnswer(answer),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: backgroundColor,
+        foregroundColor: textColor,
+        textStyle: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        disabledBackgroundColor: backgroundColor,
+        disabledForegroundColor: textColor,
       ),
+      child: Text(answer),
     );
   }
 }
