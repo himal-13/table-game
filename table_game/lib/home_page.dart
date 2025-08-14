@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_game/pages/play_menu.dart';
 import 'package:table_game/pages/stats_page.dart';
+import 'package:table_game/pages/table_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -47,7 +48,12 @@ class HomePage extends StatelessWidget {
 
             // Table Button
             CustomElevatedButton(
-              onPressed: (){},
+              onPressed: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TablePage()),
+                );
+              },
               icon: Icons.grid_view,
               text: 'TABLE',
               buttonColor: buttonColor,
