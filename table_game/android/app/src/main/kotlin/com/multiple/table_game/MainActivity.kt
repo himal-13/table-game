@@ -1,4 +1,4 @@
-package com.example.table_game
+package com.multiple.table_game
 
 import io.flutter.embedding.android.FlutterActivity
 
