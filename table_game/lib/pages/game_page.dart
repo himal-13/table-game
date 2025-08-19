@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:table_game/components/audio_manager.dart';
 import 'package:table_game/main.dart';
 import 'package:table_game/pages/play_menu.dart';
 
@@ -15,7 +16,8 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin {
+class _GamePageState extends State<GamePage>
+    with SingleTickerProviderStateMixin {
   // Game state variables
   int _score = 0;
   int _highScore = 0;
@@ -27,7 +29,7 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
   String _question = "";
   int _correctAnswer = 0;
   List<String> _options = [];
-  
+
   // Answer feedback
   String _selectedAnswer = "";
   bool _showAnswer = false;
@@ -74,10 +76,22 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
 
   void _saveGameStats() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('totalQuestions', (prefs.getInt('totalQuestions') ?? 0) + _totalQuestions);
-    await prefs.setInt('correctAnswers', (prefs.getInt('correctAnswers') ?? 0) + _correctAnswers);
-    await prefs.setInt('totalResponseTime', (prefs.getInt('totalResponseTime') ?? 0) + _totalResponseTime);
-    await prefs.setInt('totalScore', (prefs.getInt('totalScore') ?? 0) + _score);
+    await prefs.setInt(
+      'totalQuestions',
+      (prefs.getInt('totalQuestions') ?? 0) + _totalQuestions,
+    );
+    await prefs.setInt(
+      'correctAnswers',
+      (prefs.getInt('correctAnswers') ?? 0) + _correctAnswers,
+    );
+    await prefs.setInt(
+      'totalResponseTime',
+      (prefs.getInt('totalResponseTime') ?? 0) + _totalResponseTime,
+    );
+    await prefs.setInt(
+      'totalScore',
+      (prefs.getInt('totalScore') ?? 0) + _score,
+    );
   }
 
   void _startTimer() {
@@ -93,7 +107,8 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
 
   void _generateQuestion() {
     _questionStartTime = DateTime.now();
-    int num1 = widget.selectedNumbers[_random.nextInt(widget.selectedNumbers.length)];
+    int num1 =
+        widget.selectedNumbers[_random.nextInt(widget.selectedNumbers.length)];
     int num2 = _random.nextInt(10) + 1;
     _correctAnswer = num1 * num2;
     _question = "$num1 x $num2";
@@ -118,10 +133,15 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
       _showAnswer = true;
       _totalQuestions++;
 
-      bool isCorrect = selectedAnswer != "TimeOut" && int.tryParse(selectedAnswer) == _correctAnswer;
+      bool isCorrect =
+          selectedAnswer != "TimeOut" &&
+          int.tryParse(selectedAnswer) == _correctAnswer;
+      AudioService().playCorrectSound(isCorrect);
 
       if (isCorrect) {
-        int responseTime = DateTime.now().difference(_questionStartTime!).inMilliseconds;
+        int responseTime = DateTime.now()
+            .difference(_questionStartTime!)
+            .inMilliseconds;
         _responseTimes.add(responseTime);
         _totalResponseTime += responseTime;
         _correctAnswers++;
@@ -138,6 +158,7 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     Future.delayed(const Duration(seconds: 2), () {
       if (_health <= 0) {
         _saveGameStats();
+        AudioService().playGameOverSound();
         _showGameOverDialog();
       } else {
         setState(() {
@@ -152,17 +173,30 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
   }
 
   void _showGameOverDialog() {
-    double accuracy = _totalQuestions > 0 ? (_correctAnswers / _totalQuestions) * 100 : 0;
-    int avgTime = _responseTimes.isNotEmpty ? _responseTimes.reduce((a, b) => a + b) ~/ _responseTimes.length : 0;
+    double accuracy = _totalQuestions > 0
+        ? (_correctAnswers / _totalQuestions) * 100
+        : 0;
+    int avgTime = _responseTimes.isNotEmpty
+        ? _responseTimes.reduce((a, b) => a + b) ~/ _responseTimes.length
+        : 0;
 
     _scoreAnimation = Tween(begin: 0.0, end: _score.toDouble()).animate(
-      CurvedAnimation(parent: _dialogController, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _dialogController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
     );
     _accuracyAnimation = Tween(begin: 0.0, end: accuracy).animate(
-      CurvedAnimation(parent: _dialogController, curve: const Interval(0.2, 0.7, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _dialogController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOut),
+      ),
     );
     _timeAnimation = Tween(begin: 0.0, end: avgTime / 1000.0).animate(
-      CurvedAnimation(parent: _dialogController, curve: const Interval(0.4, 0.9, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _dialogController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOut),
+      ),
     );
 
     _dialogController.reset();
@@ -174,21 +208,37 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
       builder: (context) => AlertDialog(
         backgroundColor: darkPurple,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Game Over!", style: TextStyle(color: beige, fontSize: 32, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Game Over!",
+          style: TextStyle(
+            color: beige,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedBuilder(
               animation: _dialogController,
-              builder: (context, _) => _buildDialogItem("Score:", _scoreAnimation.value.round().toString()),
+              builder: (context, _) => _buildDialogItem(
+                "Score:",
+                _scoreAnimation.value.round().toString(),
+              ),
             ),
             AnimatedBuilder(
               animation: _dialogController,
-              builder: (context, _) => _buildDialogItem("Accuracy:", "${_accuracyAnimation.value.toStringAsFixed(1)}%"),
+              builder: (context, _) => _buildDialogItem(
+                "Accuracy:",
+                "${_accuracyAnimation.value.toStringAsFixed(1)}%",
+              ),
             ),
             AnimatedBuilder(
               animation: _dialogController,
-              builder: (context, _) => _buildDialogItem("Avg Time:", "${_timeAnimation.value.toStringAsFixed(2)}s"),
+              builder: (context, _) => _buildDialogItem(
+                "Avg Time:",
+                "${_timeAnimation.value.toStringAsFixed(2)}s",
+              ),
             ),
           ],
         ),
@@ -201,9 +251,14 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: beige,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
-            child: const Text("Play Again", style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Play Again",
+              style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -214,7 +269,14 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     return Column(
       children: [
         Text(label, style: const TextStyle(color: beige, fontSize: 18)),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -240,20 +302,33 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
                 children: [
                   _buildHeaderItem("SCORE", _score.toString()),
                   _buildHeaderItem("HIGHSCORE", _highScore.toString()),
-                  _buildHeaderItem("TIME", _timeRemaining.toString().padLeft(2, '0')),
+                  _buildHeaderItem(
+                    "TIME",
+                    _timeRemaining.toString().padLeft(2, '0'),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (i) => Icon(
-                  i < _health ? Icons.favorite : Icons.favorite_border,
-                  color: Colors.red,
-                  size: 30,
-                )),
+                children: List.generate(
+                  5,
+                  (i) => Icon(
+                    i < _health ? Icons.favorite : Icons.favorite_border,
+                    color: Colors.red,
+                    size: 30,
+                  ),
+                ),
               ),
               const SizedBox(height: 30),
-              Text(_question, style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(
+                _question,
+                style: const TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
               const SizedBox(height: 50),
               Expanded(
                 child: GridView.builder(
@@ -279,7 +354,14 @@ class _GamePageState extends State<GamePage> with SingleTickerProviderStateMixin
     return Column(
       children: [
         Text(label, style: const TextStyle(color: beige, fontSize: 16)),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
