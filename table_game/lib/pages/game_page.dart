@@ -271,7 +271,7 @@ class _GamePageState extends State<GamePage>
               ),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 60),
           Text(
             _question,
             style: const TextStyle(
@@ -308,7 +308,7 @@ class _GamePageState extends State<GamePage>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: const Color.fromARGB(87, 0, 0, 0),
               spreadRadius: 5,
               blurRadius: 10,
               offset: const Offset(0, 5),
@@ -453,7 +453,7 @@ class _GamePageState extends State<GamePage>
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
         foregroundColor: textColor,
-        textStyle: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         padding: const EdgeInsets.symmetric(vertical: 16),
         disabledBackgroundColor: backgroundColor,

@@ -4,7 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_game/components/audio_manager.dart';
-import 'package:table_game/main.dart';
+import 'package:table_game/main.dart'; // Ensure this import path is correct
+import 'package:table_game/services/intertitial_ads.dart'; // Import the new AdManager
 
 class ChallengeGamePage extends StatefulWidget {
   const ChallengeGamePage({super.key});
@@ -43,6 +44,8 @@ class _ChallengeGamePageState extends State<ChallengeGamePage>
   @override
   void initState() {
     super.initState();
+    AdManager().loadInterstitialAd();
+
     _dialogController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -189,6 +192,9 @@ class _ChallengeGamePageState extends State<ChallengeGamePage>
     setState(() {
       _isGameOver = true;
     });
+    
+    // Load the interstitial ad when the game ends
+    AdManager().showInterstitialAd();
 
     _scoreAnimation = Tween(begin: 0.0, end: _score.toDouble()).animate(
       CurvedAnimation(
@@ -202,6 +208,7 @@ class _ChallengeGamePageState extends State<ChallengeGamePage>
   }
 
   void _onPlayAgain() {
+    // Show the ad before restarting the game.
     _resetGame();
   }
 
@@ -450,13 +457,13 @@ class _ChallengeGamePageState extends State<ChallengeGamePage>
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                border: Border.all(color: const Color.fromARGB(47, 255, 255, 255), width: 2),
               ),
               child: Center(
                 child: Text(
                   number.toString(),
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: const Color.fromARGB(109, 255, 255, 255),
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
