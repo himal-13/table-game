@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:store_redirect/store_redirect.dart';
+import 'package:table_game/pages/challenge_mode.dart';
 import 'package:table_game/pages/play_menu.dart';
 import 'package:table_game/pages/stats_page.dart';
 import 'package:table_game/pages/table_page.dart';
@@ -43,51 +44,51 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Shows a simple dialog for the 'Rate Us' feature.
   void _showRateUsDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Color(0xFF6B588D),
-          title: Text(
+          backgroundColor: const Color(0xFF6B588D),
+          title: const Text(
             'Rate Us',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: Text(
+          content: const Text(
             'Thank you for using our app! Please take a moment to rate us.',
             style: TextStyle(color: Colors.white70),
           ),
           actions: <Widget>[
             TextButton(
-              child: Text(
-                'Later',
-                style: TextStyle(color: Color(0xFFEBC182)),
-              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
+              child: const Text(
+                'Later',
+                style: TextStyle(color: Color(0xFFEBC182)),
+              ),
             ),
             TextButton(
-              child: Text(
-                'Rate Now',
-                style: TextStyle(color: Color(0xFFEBC182), fontWeight: FontWeight.bold),
-              ),
-              onPressed: ()async {
-                // In a real app, you would open the app store link here.
+              onPressed: () async {
                 Navigator.of(context).pop();
-                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
                     content: Text('Opening app store...'),
                     duration: Duration(seconds: 2),
                   ),
                 );
-                await StoreRedirect.redirect(androidAppId: "com.multiple.tablegame",);
-               
+                await StoreRedirect.redirect(androidAppId: "com.multiple.tablegame");
               },
+              child: const Text(
+                'Rate Now',
+                style: TextStyle(
+                  color: Color(0xFFEBC182),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -97,122 +98,221 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // A dark purple color that matches the image
-    const Color cardColor = Color(0xFF4C3C63);
-    const Color buttonColor = Color(0xFF6B588D);
-    const Color iconColor = Color(0xFFEBC182);
+    const Color transparentWhite = Color.fromARGB(22, 255, 255, 255);
 
     return Scaffold(
-      backgroundColor: cardColor, // The background of the whole app screen
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Welcome Text
-            Text(
-              'Table Game',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2.0,
-              ),
+      backgroundColor: const Color(0xFF1B1B36),
+      body: Stack(
+        children: [
+          // Background symbols
+          Positioned(
+            top: 50,
+            left: -20,
+            child: Text(
+              'X',
+              style: TextStyle(fontSize: 120, color: transparentWhite),
             ),
-            SizedBox(height: 40),
-
-            // Play Button
-            CustomElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PlayMenu()),
-                );
-              },
-              icon: Icons.play_arrow,
-              text: 'PLAY',
-              buttonColor: buttonColor,
-              iconColor: iconColor,
+          ),
+          Positioned(
+            top: 150,
+            left: 20,
+            child: Text(
+              '2',
+              style: TextStyle(fontSize: 100, color: transparentWhite),
             ),
-            SizedBox(height: 30),
-
-            // Table Button
-            CustomElevatedButton(
-              onPressed: (){
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TablePage()),
-                );
-              },
-              icon: Icons.grid_view,
-              text: 'TABLE',
-              buttonColor: buttonColor,
-              iconColor: iconColor,
+          ),
+          Positioned(
+            top: 250,
+            left: -40,
+            child: Text(
+              '-',
+              style: TextStyle(fontSize: 150, color: transparentWhite),
             ),
-            SizedBox(height: 30),
-
-            // Stats Button
-            CustomElevatedButton(
-              onPressed: (){
-               Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => StatsPage()),
-                );
-              },
-              icon: Icons.bar_chart,
-              text: 'STATS',
-              buttonColor: buttonColor,
-              iconColor: iconColor,
+          ),
+          Positioned(
+            bottom: 250,
+            right: -60,
+            child: Text(
+              '/',
+              style: TextStyle(fontSize: 140, color: transparentWhite),
             ),
-            SizedBox(height: 60),
-
-            // Bottom Icons Row - Now interactive!
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ),
+          Positioned(
+            top: 80,
+            right: -30,
+            child: Text(
+              '+',
+              style: TextStyle(fontSize: 130, color: transparentWhite),
+            ),
+          ),
+          Positioned(
+            top: 180,
+            right: 20,
+            child: Text(
+              '-',
+              style: TextStyle(fontSize: 100, color: transparentWhite),
+            ),
+          ),
+          Positioned(
+            top: 400,
+            right: 0,
+            child: Text(
+              'X',
+              style: TextStyle(fontSize: 90, color: transparentWhite),
+            ),
+          ),
+          Positioned(
+            top: 500,
+            right: -20,
+            child: Text(
+              '5',
+              style: TextStyle(fontSize: 120, color: transparentWhite),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            left: 50,
+            child: Text(
+              '3',
+              style: TextStyle(fontSize: 100, color: transparentWhite),
+            ),
+          ),
+          // Main content column
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Sound Icon: Toggles sound on/off
-                InkWell(
-                  onTap: _toggleSound,
-                  child: Icon(
-                    // Change icon based on sound state
-                    _isSoundOn ? Icons.volume_up : Icons.volume_off,
-                    color: Colors.white,
-                    size: 50,
-                  ),
+                // Top Section with the logo and "MATH TABLE" text
+                const Column(
+                  children: [
+                    Text(
+                      'MATH',
+                      style: TextStyle(
+                        fontFamily: 'Riffic',
+                        color: Color(0xFFFFF2D9),
+                        fontSize: 65,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    Text(
+                      'TABLE',
+                      style: TextStyle(
+                        fontFamily: 'Riffic',
+                        color: Color(0xFFFFF2D9),
+                        fontSize: 65,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 40),
-                // Rate Us Icon: Opens a dialog
-                InkWell(
-                  onTap: _showRateUsDialog,
-                  child: Icon(
-                    Icons.star,
-                    color: Colors.yellow[600],
-                    size: 50,
-                  ),
+                const SizedBox(height: 50),
+
+                // Practice Button - Red
+                CustomElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PlayMenu()),
+                    );
+                  },
+                  text: 'PRACTICE',
+                  buttonColor: const Color(0xFFBB2F45),
+                  icon: Icons.chevron_right,
+                ),
+                const SizedBox(height: 30),
+
+                // Challenge Button - Orange
+                CustomElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ChallengeGamePage()),
+                    );
+                    
+                  },
+                  text: 'CHALLENGE',
+                  buttonColor: const Color(0xFFE44D26),
+                  icon: Icons.sports_martial_arts,
+                ),
+                const SizedBox(height: 30),
+
+                // Tables Button - Yellow
+                CustomElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TablePage()),
+                    );
+                  },
+                  text: 'TABLES',
+                  buttonColor: const Color(0xFFF9A825),
+                  icon: Icons.table_chart,
+                ),
+                const SizedBox(height: 60),
+                
+
+                // Bottom Icons Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Sound Icon
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const StatsPage()),
+                        );
+                      },
+                      child: Icon(
+                        Icons.bar_chart,
+                        color: const Color(0xFFFFF2D9),
+                        size: 50,
+                      ),
+                    ),
+                    const SizedBox(width: 40),
+                    InkWell(
+                      onTap: _toggleSound,
+                      child: Icon(
+                        _isSoundOn ? Icons.volume_up : Icons.volume_off,
+                        color: const Color(0xFFFFF2D9),
+                        size: 50,
+                      ),
+                    ),
+                    const SizedBox(width: 40),
+                    // Rate Us Icon
+                    InkWell(
+                      onTap: _showRateUsDialog,
+                      child: Icon(
+                        Icons.star,
+                        color: Colors.yellow[600],
+                        size: 50,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// A custom button widget to reduce code repetition and make the UI cleaner
 class CustomElevatedButton extends StatelessWidget {
-  final IconData icon;
   final String text;
   final Color buttonColor;
-  final Color iconColor;
   final VoidCallback onPressed;
+  final IconData icon;
 
   const CustomElevatedButton({
     super.key,
-    required this.icon,
     required this.text,
     required this.buttonColor,
-    required this.iconColor,
     required this.onPressed,
+    required this.icon,
   });
 
   @override
@@ -220,35 +320,27 @@ class CustomElevatedButton extends StatelessWidget {
     return SizedBox(
       width: 300,
       child: ElevatedButton.icon(
-        onPressed: () {
-          onPressed();
-        },
-        icon: Padding(
-          padding: const EdgeInsets.only(left: 10.0),
-          child: Icon(icon, color: iconColor, size: 28),
-        ),
-        label: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15.0),
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
+        onPressed: onPressed,
+        icon: Icon(icon, color: Colors.white, size: 28),
+        label: Text(
+          text,
+          style: const TextStyle(
+            fontFamily: 'Riffic',
+            color: Color(0xFFFFF2D9),
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
           ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: buttonColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(20),
           ),
-          shadowColor: const Color.fromARGB(134, 0, 0, 0),
+          shadowColor: Colors.black.withOpacity(0.5),
           elevation: 8,
-          minimumSize: const Size(double.infinity, 70), // Full width button
-
-          alignment: Alignment.center, // Align content to the left
+          minimumSize: const Size(double.infinity, 70),
+          padding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),
     );
